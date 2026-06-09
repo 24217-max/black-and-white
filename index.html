@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ChatGPT 질문 답변 페이지</title>
+  <title>연령별 도서 선호도 및 인기 순위</title>
   <style>
     * {
       box-sizing: border-box;
@@ -12,247 +12,432 @@
     body {
       margin: 0;
       min-height: 100vh;
-      background: linear-gradient(135deg, #e3f2fd, #fce4ec);
-      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #f5f7fa, #c3cfe2);
+      font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', Arial, sans-serif;
       color: #333;
+      line-height: 1.6;
     }
 
     .container {
-      width: min(900px, 92%);
+      width: min(1000px, 94%);
       margin: 40px auto;
       background: #ffffff;
       border-radius: 24px;
-      padding: 28px;
-      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.16);
+      padding: 32px;
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
     }
 
     h1 {
       margin: 0 0 8px;
       text-align: center;
-      font-size: 28px;
+      font-size: 32px;
+      color: #1a2a3a;
     }
 
     .subtitle {
       text-align: center;
-      color: #777;
-      margin-bottom: 24px;
-      font-size: 14px;
-    }
-
-    .info {
-      padding: 14px;
-      margin-bottom: 20px;
-      border-radius: 14px;
-      background: #e8f5e9;
-      color: #2e7d32;
-      font-size: 14px;
-      line-height: 1.6;
-    }
-
-    .chat-box {
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-    }
-
-    textarea {
-      width: 100%;
-      min-height: 140px;
-      resize: vertical;
-      padding: 16px;
-      border: 1px solid #ddd;
-      border-radius: 16px;
-      font-size: 16px;
-      line-height: 1.5;
-      outline: none;
-      font-family: Arial, sans-serif;
-    }
-
-    textarea:focus {
-      border-color: #42a5f5;
-      box-shadow: 0 0 0 3px rgba(66, 165, 245, 0.15);
-    }
-
-    .button-row {
-      display: flex;
-      gap: 10px;
-      justify-content: flex-end;
-      flex-wrap: wrap;
-    }
-
-    button {
-      border: none;
-      border-radius: 12px;
-      padding: 0 18px;
-      height: 46px;
+      color: #666;
+      margin-bottom: 32px;
       font-size: 15px;
-      cursor: pointer;
-      transition: 0.15s;
+    }
+
+    /* 연령대 탭 스타일 */
+    .tabs {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 8px;
+      margin-bottom: 28px;
+    }
+
+    .tab-btn {
+      border: none;
+      background: #f0f2f5;
+      color: #555;
+      padding: 12px 0;
+      font-size: 16px;
       font-weight: bold;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-align: center;
     }
 
-    button:hover {
-      transform: translateY(-2px);
-      opacity: 0.9;
+    .tab-btn:hover {
+      background: #e1e4e9;
     }
 
-    button:disabled {
-      cursor: not-allowed;
-      opacity: 0.6;
-      transform: none;
-    }
-
-    .ask-btn {
+    .tab-btn.active {
       background: #42a5f5;
       color: white;
+      box-shadow: 0 4px 12px rgba(66, 165, 245, 0.3);
     }
 
-    .clear-btn {
-      background: #b0bec5;
+    /* 메인 콘텐츠 구조 */
+    .content-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 28px;
+    }
+
+    /* 1위 도서 상세 정보 스페이스 */
+    .featured-box {
+      background: #f8fafc;
+      border-radius: 20px;
+      padding: 24px;
+      border: 1px solid #e2e8f0;
+    }
+
+    .badge {
+      display: inline-block;
+      background: #ff7043;
       color: white;
-    }
-
-    .answer-box {
-      min-height: 220px;
-      padding: 18px;
-      border-radius: 18px;
-      background: #f7f9fb;
-      border: 1px solid #edf1f5;
-      line-height: 1.7;
-      white-space: pre-wrap;
-      word-break: break-word;
-    }
-
-    .status {
-      min-height: 24px;
-      color: #555;
-      font-size: 14px;
-    }
-
-    .label {
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
       font-weight: bold;
-      margin-bottom: 6px;
+      margin-bottom: 12px;
     }
 
-    .help {
-      margin-top: 12px;
-      font-size: 13px;
-      color: #777;
-      line-height: 1.6;
+    .book-title {
+      font-size: 24px;
+      margin: 0 0 4px;
+      color: #0f172a;
     }
 
-    @media (max-width: 700px) {
-      .button-row {
-        justify-content: stretch;
+    .book-author {
+      font-size: 14px;
+      color: #64748b;
+      margin-bottom: 20px;
+    }
+
+    .section-title {
+      font-size: 16px;
+      font-weight: bold;
+      color: #334155;
+      margin: 16px 0 6px;
+      border-left: 4px solid #42a5f5;
+      padding-left: 8px;
+    }
+
+    .book-desc {
+      font-size: 15px;
+      color: #334155;
+      background: white;
+      padding: 14px;
+      border-radius: 12px;
+      border: 1px solid #f1f5f9;
+    }
+
+    .review-item {
+      background: #fff8e1;
+      color: #5d4037;
+      padding: 12px 14px;
+      border-radius: 12px;
+      font-size: 14px;
+      margin-bottom: 8px;
+      font-style: italic;
+    }
+
+    /* 30위 리스트 스페이스 */
+    .rank-box {
+      background: #ffffff;
+      border-radius: 20px;
+      padding: 24px;
+      border: 1px solid #e2e8f0;
+      max-height: 520px;
+      overflow-y: auto;
+    }
+
+    .rank-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .rank-item {
+      display: flex;
+      align-items: center;
+      padding: 10px 14px;
+      background: #f8fafc;
+      border-radius: 10px;
+      font-size: 14px;
+      border: 1px solid #f1f5f9;
+    }
+
+    .rank-number {
+      font-weight: bold;
+      width: 28px;
+      color: #64748b;
+    }
+
+    .rank-item:nth-child(-n+3) .rank-number {
+      color: #42a5f5;
+      font-size: 16px;
+    }
+
+    .rank-title {
+      font-weight: 600;
+      color: #1e293b;
+      flex-grow: 1;
+    }
+
+    .rank-author {
+      font-size: 12px;
+      color: #94a3b8;
+    }
+
+    /* 스크롤바 디자인 */
+    .rank-box::-webkit-scrollbar {
+      width: 6px;
+    }
+    .rank-box::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    .rank-box::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+
+    @media (max-width: 850px) {
+      .tabs {
+        grid-template-columns: repeat(3, 1fr);
       }
-
-      button {
-        width: 100%;
+      .content-grid {
+        grid-template-columns: 1fr;
       }
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>ChatGPT 질문 답변</h1>
-    <div class="subtitle">GitHub Pages + Google Apps Script + OpenAI API 연동</div>
 
-    <div class="info">
-      현재 구조: GitHub Pages 화면 → Google Apps Script 서버 → OpenAI API → 답변 반환<br />
-      API Key는 index.html에 들어가지 않고 Apps Script의 스크립트 속성에 저장됩니다.
+  <div class="container">
+    <h1>연령별 도서 선호도 및 통계</h1>
+    <div class="subtitle">10대부터 60대까지 연령대별 인기 도서 TOP 30 대시보드</div>
+
+    <!-- 탭 버튼 영역 -->
+    <div class="tabs" id="tabContainer">
+      <button class="tab-btn active" onclick="switchAgeGroup('10')">10대</button>
+      <button class="tab-btn" onclick="switchAgeGroup('20')">20대</button>
+      <button class="tab-btn" onclick="switchAgeGroup('30')">30대</button>
+      <button class="tab-btn" onclick="switchAgeGroup('40')">40대</button>
+      <button class="tab-btn" onclick="switchAgeGroup('50')">50대</button>
+      <button class="tab-btn" onclick="switchAgeGroup('60')">60대+</button>
     </div>
 
-    <div class="chat-box">
+    <!-- 데이터 디스플레이 메인 영역 -->
+    <div class="content-grid">
+      <!-- 왼쪽: 종합 1위 도서 상세 정보 -->
+      <div class="featured-box">
+        <div class="badge">연령대 종합 1위</div>
+        <h2 class="book-title" id="featuredTitle">수학도둑 시즌2</h2>
+        <div class="book-author" id="featuredAuthor">송도수 저</div>
+
+        <div class="section-title">책 소개</div>
+        <p class="book-desc" id="featuredDesc">내용을 불러오는 중입니다...</p>
+
+        <div class="section-title">독자 실시간 후기</div>
+        <div id="featuredReviews">
+          <!-- 스크립트로 주입됨 -->
+        </div>
+      </div>
+
+      <!-- 오른쪽: 30위 리스트 -->
       <div>
-        <div class="label">질문</div>
-        <textarea id="questionInput" placeholder="질문을 입력하세요. 예: 고등학생에게 파이썬 반복문을 쉽게 설명해줘."></textarea>
-      </div>
-
-      <div class="button-row">
-        <button class="clear-btn" id="clearBtn">초기화</button>
-        <button class="ask-btn" id="askBtn">질문하기</button>
-      </div>
-
-      <div id="status" class="status"></div>
-
-      <div>
-        <div class="label">답변</div>
-        <div id="answerBox" class="answer-box">아직 답변이 없습니다.</div>
-      </div>
-
-      <div class="help">
-        단축키: 질문 입력창에서 Ctrl + Enter를 누르면 질문이 전송됩니다.<br />
-        오류가 발생하면 Apps Script 배포 권한이 “모든 사용자”인지 확인하세요.
+        <div style="font-weight: bold; margin-bottom: 12px; color: #475569;">선호 도서 순위 (30위까지)</div>
+        <div class="rank-box">
+          <div class="rank-list" id="rankListContainer">
+            <!-- 스크립트로 주입됨 -->
+          </div>
+        </div>
       </div>
     </div>
   </div>
 
   <script>
-    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyTS-n6dNxhXGHxck-BL97z9l2PPrqZbl0tqjtPIP44MVFtyOiTwizk4jva8GMuV38p/exec';
-
-    const questionInput = document.getElementById('questionInput');
-    const answerBox = document.getElementById('answerBox');
-    const statusBox = document.getElementById('status');
-    const askBtn = document.getElementById('askBtn');
-    const clearBtn = document.getElementById('clearBtn');
-
-    askBtn.addEventListener('click', askChatGPT);
-    clearBtn.addEventListener('click', clearPage);
-
-    questionInput.addEventListener('keydown', function(event) {
-      if (event.key === 'Enter' && event.ctrlKey) {
-        askChatGPT();
+    // 10대~60대 도서 데이터 사전 정의
+    const ageData = {
+      "10": {
+        title: "수학도둑 시즌 2",
+        author: "송도수 (글), 서정은 (그림)",
+        desc: "수학적 논리력을 흥미진진한 만화 서사 속에 녹여낸 국내 대표 학습 만화입니다. 인공지능, 공간 기하학 등 최신 수학 패러다임을 위트 있게 풀어내어 10대 독자층의 압도적인 선택을 받았습니다.",
+        reviews: [
+          "\"단순히 공식만 외우는 게 아니라 스토리랑 연결되어 있어서 질리지 않고 읽게 돼요!\" (중학생 독자)",
+          "\"아이가 스마트폰 내려놓고 유일하게 집중해서 보는 책입니다. 학습 효과도 톡톡히 보고 있어요.\" (학부모 후기)"
+        ],
+        rank: [
+          {t: "수학도둑 시즌 2", a: "송도수"}, {t: "2026 별별한국사 상", a: "최태성"}, {t: "흔한남매 16", a: "흔한남매"},
+          {t: "만화 그리스 로마 신화", a: "박시연"}, {t: "설민석의 한국사 대모험", a: "설민석"}, {t: "수능특강 문학", a: "EBS"},
+          {t: "마법천자문 62", a: "스튜디오 시리얼"}, {t: "해커스 토익 기출 VOCA", a: "해커스 어학연구소"}, {t: "고양이 해결사 깜냥", a: "홍민정"},
+          {t: "에이투지 영어 회화", a: "이안"}, {t: "엽기 과학자 프래니", a: "짐 벤튼"}, {t: "전천당 20", a: "히로시마 레이코"},
+          {t: "위기탈출 넘버원", a: "밝은미래"}, {t: "그리스 로마 신화 초등 인문학", a: "이필우"}, {t: "놓지 마 과학!", a: "신태훈"},
+          {t: "지선아 사랑해", a: "이지선"}, {t: "어린 왕자", a: "생텍쥐페리"}, {t: "아몬드", a: "손원평"},
+          {t: "페인트", a: "이희영"}, {t: "구미호 식당", a: "박현숙"}, {t: "시간 상점", a: "이선영"},
+          {t: "2026 수능기출 미래로", a: "이투스북"}, {t: "해리 포터와 마법사의 돌", a: "J.K. 롤링"}, {t: "불편한 편의점", a: "김호연"},
+          {t: "룬의 아이들", a: "전민희"}, {t: "완득이", a: "김려령"}, {t: "주술회전 26", a: "아쿠타미 게게"},
+          {t: "귀멸의 칼날", a: "고토게 코요하루"}, {t: "원피스 108", a: "오다 에이치로"}, {t: "스파이 패밀리", a: "엔도 타츠야"}
+        ]
+      },
+      "20": {
+        title: "자몽살구클럽",
+        author: "한로로 저",
+        desc: "싱어송라이터 한로로가 집필하여 대단한 화제를 모은 첫 소설집입니다. 청춘의 찬란함 이면에 가려진 위태로움과 방황, 그리고 연대를 감각적이고 서정적인 문체로 그려내어 청년층 사이에서 센세이션을 일으켰습니다.",
+        reviews: [
+          "\"문장 하나하나가 노래 가사처럼 가슴에 박힙니다. 스무 살의 불안함을 위로받는 기분이에요.\" (20대 직장인)",
+          "\"독립 서점에서 가볍게 샀다가 밤새 읽고 울었습니다. 올해 최고의 발견입니다.\" (대학생 독자)"
+        ],
+        rank: [
+          {t: "자몽살구클럽", a: "한로로"}, {t: "괴테는 모든 것을 말했다", a: "스즈키 유이"}, {t: "급류", a: "정대건"},
+          {t: "모순", a: "양귀자"}, {t: "안녕이라 그랬어", a: "김애란"}, {t: "혼모노", a: "성해나"},
+          {t: "소년이 온다", a: "한강"}, {t: "프로젝트 헤일메리", a: "앤디 위어"}, {t: "싯다르타", a: "헤르만 헤세"},
+          {t: "무라카미 하루키 단편집", a: "무라카미 하루키"}, {t: "나의 완벽한 장례식", a: "조현선"}, {t: "채식주의자", a: "한강"},
+          {t: "상실의 시대", a: "무라카미 하루키"}, {t: "인간 실격", a: "다자이 오사무"}, {t: "데미안", a: "헤르만 헤세"},
+          {t: "지구 끝의 온실", a: "김초엽"}, {t: "우리가 빛의 속도로 갈 수 없다면", a: "김초엽"}, {t: "메리골드 마음 세탁소", a: "윤정은"},
+          {t: "참을 수 없는 존재의 가벼움", a: "밀란 쿤데라"}, {t: "물고기는 존재하지 않는다", a: "룰루 밀러"}, {t: "달러구트 꿈 백화점", a: "이미예"},
+          {t: "아침의 피아노", a: "김진영"}, {t: "작별하지 않는다", a: "한강"}, {t: "가녀린 언덕", a: "이혁"},
+          {t: "젊은 베르테르의 기쁨", a: "알랭 드 보통"}, {t: "미드나잇 라이브러리", a: "매트 헤이그"}, {t: "스토너", a: "존 윌리엄스"},
+          {t: "단 한 번의 삶", a: "김영하"}, {t: "첫 여름, 완주", a: "김금희"}, {t: "이처럼 사소한 것들", a: "클레어 키건"}
+        ]
+      },
+      "30": {
+        title: "프로젝트 헤일메리",
+        author: "앤디 위어 저",
+        desc: "《마션》의 저자 앤디 위어의 과학 소설로, 영화화 소식과 입소문이 맞물려 역주행 신화를 썼습니다. 인류를 구하기 위해 홀로 우주 탐사를 떠난 과학자가 신비로운 외계 생명체 '로키'와 교감하며 펼쳐지는 우정의 대서사시입니다.",
+        reviews: [
+          "\"출퇴근 지하철에서 읽다가 내릴 곳을 놓쳤습니다. 로키와의 티키타카는 영원히 기억될 겁니다.\" (30대 회사원)",
+          "\"과학적 고증이 정교하면서도 대중적인 재미와 감동까지 완벽하게 잡아낸 수작입니다.\" (IT 업계 종사자)"
+        ],
+        rank: [
+          {t: "프로젝트 헤일메리", a: "앤디 위어"}, {t: "트렌드 코리아 2026", a: "김난도"}, {t: "듀얼 브레인", a: "이선 몰릭"},
+          {t: "다크 심리학", a: "다크 사이드 프로젝트"}, {t: "박곰희 연금 부자 수업", a: "박곰희"}, {t: "모순", a: "양귀자"},
+          {t: "괴테는 모든 것을 말했다", a: "스즈키 유이"}, {t: "진보를 위한 주식투자", a: "김진영"}, {t: "넥서스", a: "유발 하라리"},
+          {t: "마침내 특이점이 시작된다", a: "레이 커즈와일"}, {t: "사피엔스", a: "유발 하라리"}, {t: "퓨처 셀프", a: "벤자민 하디"},
+          {t: "역행자", a: "자청"}, {t: "돈의 속성", a: "김승호"}, {t: "세이노의 가르침", a: "세이노"},
+          {t: "아토믹 해빗", a: "제임스 클리어"}, {t: "원씽", a: "게리 켈러"}, {t: "미움받을 용기", a: "기시미 이치로"},
+          {t: "보도 섀퍼의 돈", a: "보도 섀퍼"}, {t: "부의 이동 트렌드 2026", a: "황금부엉이"}, {t: "삼국지 인생 공부", a: "민음사"},
+          {t: "박태웅의 AI 강의", a: "박태웅"}, {t: "하루 한 장 어휘력 필사 노트", a: "유선경"}, {t: "생각에 관한 생각", a: "대니얼 카너먼"},
+          {t: "지적 대화를 위한 넓고 얕은 지식", a: "채사장"}, {t: "타이탄의 도구들", a: "팀 페리스"}, {t: "백만장자 메신저", a: "브렌든 버처드"},
+          {t: "부자 아빠 가난한 아빠", a: "로버트 기요사키"}, {t: "이웃집 백만장자", a: "토머스 J. 스탠리"}, {t: "트레이딩의 정석", a: "안드레아스 클레노"}
+        ]
+      },
+      "40": {
+        title: "어른의 행복은 조용하다",
+        author: "태수 저",
+        desc: "치열한 경쟁과 관계의 피로를 겪어낸 40대 어른들에게 잔잔한 위로를 던지는 에세이입니다. 타인의 시선이나 세상의 자극적인 소음에 휘둘리지 않고, 스스로 깊어지고 고요해지는 법을 안내합니다.",
+        reviews: [
+          "\"치열하게 사느라 지친 나에게 준 가장 귀한 위로였습니다. 내 안의 고요가 곧 행복이더군요.\" (40대 자영업자)",
+          "\"나이가 들수록 인간관계가 버거워질 때가 많은데, 이 책을 읽고 마음이 한결 차분해졌습니다.\" (45세 직장인)"
+        ],
+        rank: [
+          {t: "어른의 행복은 조용하다", a: "태수"}, {t: "청춘의 독서", a: "유시민"}, {t: "초역 부처의 말", a: "코이케 류노스케"},
+          {t: "손자병법", a: "손자"}, {t: "위버멘쉬", a: "프리드리히 니체"}, {t: "어른의 품위", a: "최서영"},
+          {t: "마흔에 읽는 쇼펜하우어", a: "강용수"}, {t: "결국 국민이 합니다", a: "이재명"}, {t: "코스모스", a: "칼 세이건"},
+          {t: "오십에 읽는 장자", a: "나카시마 다카시"}, {t: "명심보감 필사 노트", a: "김범수"}, {t: "백년을 살아보니", a: "김형석"},
+          {t: "역사 앞에서", a: "김성칠"}, {t: "로마인 이야기 1", a: "시오노 나나미"}, {t: "다산의 마지막 공부", a: "조윤제"},
+          {t: "생각의 비밀", a: "김승호"}, {t: "총 균 쇠", a: "재레드 다이아몬드"}, {t: "정의란 무엇인가", a: "마이클 샌델"},
+          {t: "논어", a: "공자"}, {t: "사기 열전", a: "사마천"}, {t: "군주론", a: "마키아벨리"},
+          {t: "차라투스트라는 이렇게 말했다", a: "프리드리히 니체"}, {t: "명리 명강", a: "강헌"}, {t: "나의 문화유산답사기", a: "유홍준"},
+          {t: "토지", a: "박경리"}, {t: "태백산맥", a: "조정래"}, {t: "서양미술사", a: "에른스트 곰브리치"},
+          {t: "국가란 무엇인가", a: "유시민"}, {t: "리딩으로 리드하라", a: "이지성"}, {t: "소유냐 삶이냐", a: "에리히 프롬"}
+        ]
+      },
+      "50": {
+        title: "마흔에 읽는 쇼펜하우어",
+        author: "강용수 저",
+        desc: "삶의 무게 중심을 타인에게서 나 자신으로 옮겨오고자 하는 50대에게 큰 인기를 끌었습니다. 냉철하지만 현실적인 쇼펜하우어의 철학적 통찰을 통해 인생의 권태와 고통을 다스리는 지혜를 줍니다.",
+        reviews: [
+          "\"남들을 위해 살던 삶에서 나를 돌아보는 계기가 되었습니다. 외로움을 즐기는 법을 알았네요.\" (50대 주부)",
+          "\"철학이 이렇게 현실적으로 와닿을 줄 몰랐습니다. 은퇴를 앞두고 마음공부에 큰 도움이 됩니다.\" (55세 직장인)"
+        ],
+        rank: [
+          {t: "마흔에 읽는 쇼펜하우어", a: "강용수"}, {t: "다산의 마지막 공부", a: "조윤제"}, {t: "오십에 읽는 장자", a: "나카시마 다카시"},
+          {t: "백년을 살아보니", a: "김형석"}, {t: "총 균 쇠", a: "재레드 다이아몬드"}, {t: "코스모스", a: "칼 세이건"},
+          {t: "사기 열전", a: "사마천"}, {t: "토지 세트", a: "박경리"}, {t: "나의 문화유산답사기", a: "유홍준"},
+          {t: "손자병법 쉽게 읽기", a: "김원중"}, {t: "백세인생 지침서", a: "이만세"}, {t: "초역 부처의 말", a: "코이케 류노스케"},
+          {t: "어른의 행복은 조용하다", a: "태수"}, {t: "명심보감", a: "홍성사"}, {t: "조선왕조실록", a: "설민석"},
+          {t: "징비록", a: "류성룡"}, {t: "동의보감 건강법", a: "허준"}, {t: "인간관계론", a: "데일 카네기"},
+          {t: "삼국지", a: "이문열 역"}, {t: "노자 도덕경", a: "오강남"}, {t: "한권으로 읽는 조선왕조실록", a: "박영규"},
+          {t: "월든", a: "헨리 데이비드 소로"}, {t: "군주론", a: "마키아벨리"}, {t: "명리 명강", a: "강헌"},
+          {t: "그리스인 조르바", a: "니코스 카잔차키스"}, {t: "사피엔스", a: "유발 하라리"}, {t: "국가란 무엇인가", a: "유시민"},
+          {t: "인생의 기술", a: "쇼펜하우어"}, {t: "생각의 비밀", a: "김승호"}, {t: "침묵의 봄", a: "레이첼 카슨"}
+        ]
+      },
+      "60": {
+        title: "백년을 살아보니",
+        author: "김형석 저",
+        desc: "100세를 넘긴 철학자 김형석 교수가 삶을 먼저 걸어간 선배로서 건네는 담담하고 깊은 인생 가이드입니다. 인생의 황금기는 언제였는지, 가정과 사회에서 마주하는 노년의 고독을 어떻게 품어내야 하는지 지혜를 전합니다.",
+        reviews: [
+          "\"나이 듦이 서글픈 게 아니라 성숙해지는 과정임을 거장의 삶을 통해 배웁니다.\" (60대 퇴직 독자)",
+          "\"자식들에게 다 내어주고 허한 마음에 찾아온 이정표 같은 책입니다. 참 따뜻합니다.\" (63세 실버 독자)"
+        ],
+        rank: [
+          {t: "백년을 살아보니", a: "김형석"}, {t: "오십에 읽는 장자", a: "나카시마 다카시"}, {t: "초역 부처의 말", a: "코이케 류노스케"},
+          {t: "명심보감 원전 완역", a: "전형배"}, {t: "노자 도덕경", a: "오강남"}, {t: "토지 완간 세트", a: "박경리"},
+          {t: "다산의 마지막 공부", a: "조윤제"}, {t: "사기 열전", a: "사마천"}, {t: "나의 문화유산답사기", a: "유홍준"},
+          {t: "건강수명 늘리는 식사법", a: "김선생"}, {t: "명리 명강 1", a: "강헌"}, {t: "삼국지", a: "이문열 역"},
+          {t: "마흔에 읽는 쇼펜하우어", a: "강용수"}, {t: "인생은 70부터", a: "실버라이프"}, {t: "허준의 동의보감 현대역", a: "연구회"},
+          {t: "서양미술사", a: "에른스트 곰브리치"}, {t: "총 균 쇠", a: "재레드 다이아몬드"}, {t: "코스모스", a: "칼 세이건"},
+          {t: "징비록", a: "류성룡"}, {t: "성경 백문백답", a: "기독교서회"}, {t: "불교 명상 입문", a: "혜민"},
+          {t: "한권으로 읽는 조선왕조실록", a: "박영규"}, {t: "로마인 이야기", a: "시오노 나나미"}, {t: "정의란 무엇인가", a: "마이클 샌델"},
+          {t: "안중근 자서전", a: "안중근"}, {t: "백세건강 요가와 스트레칭", a: "스포츠북"}, {t: "시를 잊은 그대에게", a: "정재찬"},
+          {t: "지적 대화를 위한 넓고 얕은 지식 1", a: "채사장"}, {t: "카네기 인간관계론", a: "데일 카네기"}, {t: "소유냐 삶이냐", a: "에리히 프롬"}
+        ]
       }
-    });
+    };
 
-    async function askChatGPT() {
-      const question = questionInput.value.trim();
+    // 연령대 전환 함수
+    function switchAgeGroup(age) {
+      // 1. 탭 버튼 활성화 변경
+      const buttons = document.querySelectorAll('.tab-btn');
+      buttons.forEach(btn => btn.classList.remove('active'));
+      event.target.classList.add('active');
 
-      if (!question) {
-        alert('질문을 입력해주세요.');
-        return;
-      }
+      // 2. 해당 연령 데이터 확보
+      const data = ageData[age];
+      if (!data) return;
 
-      try {
-        setLoading(true);
-        answerBox.textContent = '답변을 생성하는 중입니다...';
-        statusBox.textContent = 'Apps Script 서버에 요청을 보내는 중입니다.';
+      // 3. 1위 도서 영역 정보 업데이트
+      document.getElementById('featuredTitle').textContent = data.title;
+      document.getElementById('featuredAuthor').textContent = data.author + " 저";
+      document.getElementById('featuredDesc').textContent = data.desc;
 
-        const response = await fetch(APPS_SCRIPT_URL, {
-          method: 'POST',
-          body: JSON.stringify({
-            question: question
-          })
-        });
+      // 후기 바인딩
+      const reviewsContainer = document.getElementById('featuredReviews');
+      reviewsContainer.innerHTML = '';
+      data.reviews.forEach(review => {
+        const div = document.createElement('div');
+        div.className = 'review-item';
+        div.textContent = review;
+        reviewsContainer.appendChild(div);
+      });
 
-        const data = await response.json();
-
-        if (data.error) {
-          throw new Error(data.error);
-        }
-
-        answerBox.textContent = data.answer || '답변을 가져오지 못했습니다.';
-        statusBox.textContent = '답변 생성 완료';
-      } catch (error) {
-        console.error(error);
-        answerBox.textContent = '오류가 발생했습니다.\n\n' + error.message;
-        statusBox.textContent = '요청 실패';
-      } finally {
-        setLoading(false);
-      }
+      // 4. 30위 순위 리스트 재생성
+      const rankContainer = document.getElementById('rankListContainer');
+      rankContainer.innerHTML = '';
+      
+      data.rank.forEach((item, index) => {
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'rank-item';
+        itemDiv.innerHTML = `
+          <span class="rank-number">${index + 1}</span>
+          <span class="rank-title">${escapeHTML(item.t)}</span>
+          <span class="rank-author">${escapeHTML(item.a)}</span>
+        `;
+        rankContainer.appendChild(itemDiv);
+      });
     }
 
-    function setLoading(isLoading) {
-      askBtn.disabled = isLoading;
-      askBtn.textContent = isLoading ? '생성 중...' : '질문하기';
+    // 간단한 HTML 이스케이프 함수
+    function escapeHTML(text) {
+      return String(text)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;');
     }
 
-    function clearPage() {
-      questionInput.value = '';
-      answerBox.textContent = '아직 답변이 없습니다.';
-      statusBox.textContent = '';
-    }
+    // 초기 화면 구동 (10대 데이터 바인딩)
+    window.onload = function() {
+      switchAgeGroup('10');
+    };
   </script>
 </body>
 </html>
-
