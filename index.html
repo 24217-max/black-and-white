@@ -3,448 +3,760 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AI 실시간 탐색 세대별 도서 트렌드 캐스터</title>
+  <title>AI 마인드 북 캐스터</title>
   <style>
-    * { box-sizing: border-box; }
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;700;900&family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
+
+    :root {
+      --bg: #0d1117;
+      --surface: #161b22;
+      --surface2: #1e2530;
+      --border: #30363d;
+      --accent: #7c6af7;
+      --accent2: #c084fc;
+      --accent-glow: rgba(124, 106, 247, 0.25);
+      --text: #e6edf3;
+      --text-sub: #8b949e;
+      --text-dim: #484f58;
+      --green: #2ea043;
+      --red: #f85149;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
     body {
-      margin: 0; min-height: 100vh;
-      background: linear-gradient(135deg, #e3f2fd, #fce4ec);
-      font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', Arial, sans-serif;
-      color: #1e293b; line-height: 1.6;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Noto Sans KR', sans-serif;
+      min-height: 100vh;
+      line-height: 1.6;
     }
-    .container {
-      width: min(1200px, 94%); margin: 40px auto;
-      background: #ffffff; border-radius: 28px; padding: 32px;
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12);
+
+    /* ── 배경 오브 ── */
+    body::before {
+      content: '';
+      position: fixed;
+      top: -200px; left: 50%; transform: translateX(-50%);
+      width: 800px; height: 600px;
+      background: radial-gradient(ellipse, rgba(124,106,247,0.12) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
     }
-    header {
+
+    .wrap {
+      position: relative; z-index: 1;
+      width: min(1080px, 95%);
+      margin: 0 auto;
+      padding: 40px 0 80px;
+    }
+
+    /* ── 헤더 ── */
+    .top-bar {
       display: flex; justify-content: space-between; align-items: center;
-      border-bottom: 2px solid #f1f5f9; padding-bottom: 20px; margin-bottom: 24px;
-    }
-    h1 { margin: 0; font-size: 24px; color: #0f172a; }
-    .auth-panel { display: flex; align-items: center; gap: 12px; }
-    .user-info { font-size: 14px; color: #475569; font-weight: 500; }
-    .btn-auth {
-      border: none; padding: 10px 18px; font-size: 14px; font-weight: bold;
-      border-radius: 12px; cursor: pointer; transition: all 0.2s;
-    }
-    .btn-login { background: #2563eb; color: white; }
-    .btn-logout { background: #64748b; color: white; }
-
-    /* 오디오 제어 마스터 패널 (OpenAI TTS 전용 옵션 포함) */
-    .audio-master-panel {
-      display: grid; grid-template-columns: repeat(3, 1fr) auto; gap: 10px; margin-bottom: 24px;
-      background: #f8fafc; padding: 16px; border-radius: 16px; border: 1px solid #e2e8f0;
-    }
-    select, input {
-      height: 40px; padding: 0 12px; border: 1px solid #ddd;
-      border-radius: 10px; font-size: 14px; outline: none; background: white;
+      padding-bottom: 32px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 48px;
     }
 
-    /* 탭 스타일 */
-    .tabs { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-bottom: 28px; }
-    .tab-btn {
-      border: none; background: #f1f5f9; color: #475569; padding: 14px 0;
-      font-size: 16px; font-weight: bold; border-radius: 14px; cursor: pointer;
-      transition: all 0.15s ease; text-align: center;
+    .logo {
+      font-family: 'Noto Serif KR', serif;
+      font-size: 20px;
+      font-weight: 900;
+      color: var(--text);
+      letter-spacing: -0.5px;
     }
-    .tab-btn.active { background: #2563eb; color: white; box-shadow: 0 6px 16px rgba(37, 99, 235, 0.25); }
+    .logo span { color: var(--accent); }
 
-    /* 레이아웃 */
-    .content-grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 32px; }
-    
-    /* 좌측 상세창 */
-    .detail-box {
-      background: #f8fafc; border-radius: 24px; padding: 28px; border: 1px solid #e2e8f0;
-      position: sticky; top: 20px; min-height: 400px;
-    }
-    .badge { display: inline-block; background: #2563eb; color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; margin-bottom: 14px; }
-    .book-title-container { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-    .book-title { font-size: 22px; margin: 0; color: #0f172a; font-weight: 800; }
-    .tts-btn { background: #10b981; color: white; border: none; padding: 8px 14px; font-size: 14px; border-radius: 10px; cursor: pointer; font-weight: bold; }
-    .tts-btn:disabled { background: #cbd5e1; cursor: not-allowed; }
-    .book-author { font-size: 15px; color: #64748b; margin: 6px 0 24px; }
-    .section-title { font-size: 16px; font-weight: bold; color: #334155; margin: 24px 0 8px; border-left: 4px solid #2563eb; padding-left: 10px; }
-    .book-desc { font-size: 14px; color: #334155; background: white; padding: 16px; border-radius: 14px; border: 1px solid #e2e8f0; margin: 0; }
-    .review-item { background: #fef3c7; color: #78350f; padding: 12px; border-radius: 12px; font-size: 13px; margin-bottom: 8px; font-style: italic; }
-
-    /* 우측 리스트 */
-    .rank-box { background: #ffffff; border-radius: 24px; padding: 8px; border: 1px solid #e2e8f0; max-height: 450px; overflow-y: auto; }
-    .rank-list { display: flex; flex-direction: column; gap: 6px; }
-    .rank-item { display: flex; align-items: center; padding: 14px 16px; background: #f8fafc; border-radius: 14px; font-size: 14px; border: 1px solid #f1f5f9; cursor: pointer; transition: all 0.15s ease; }
-    .rank-item:hover { background: #eff6ff; }
-    .rank-item.selected { background: #eff6ff; border-color: #2563eb; box-shadow: inset 4px 0 0 #2563eb; }
-    .rank-number { font-weight: 800; width: 34px; color: #64748b; }
-    .rank-title { font-weight: 600; color: #1e293b; flex-grow: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .rank-author { font-size: 13px; color: #64748b; padding-left: 10px; }
-
-    /* 로딩 및 결과 인디케이터 */
-    .loading-layer { display: none; text-align: center; padding: 40px; font-weight: bold; color: #2563eb; }
-    .status { min-height: 24px; margin-top: 10px; color: #2563eb; font-size: 14px; font-weight: bold; text-align: center; }
-    
-    .result-box { margin-top: 15px; padding: 12px; border-radius: 14px; background: #f0f4f8; border: 1px solid #d0d7de; }
-    audio { width: 100%; margin-top: 5px; }
-    .download-link {
-      display: block; text-align: center; background: #7e57c2; color: white; 
-      padding: 8px; border-radius: 8px; text-decoration: none; font-size: 13px; font-weight: bold; margin-top: 8px;
+    .auth-area { display: flex; align-items: center; gap: 12px; }
+    .user-chip {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 6px 14px;
+      font-size: 13px;
+      color: var(--text-sub);
     }
 
-    .history-box { margin-top: 24px; background: #f8fafc; padding: 16px; border-radius: 16px; border: 1px solid #e2e8f0; }
-    .history-item { font-size: 13px; color: #475569; padding: 4px 0; border-bottom: 1px dashed #e2e8f0; }
+    /* ── 버튼 공통 ── */
+    .btn {
+      border: none; border-radius: 10px; padding: 0 18px; height: 40px;
+      font-size: 13px; font-weight: 700; cursor: pointer;
+      transition: all 0.18s; font-family: 'Noto Sans KR', sans-serif;
+    }
+    .btn:hover { transform: translateY(-1px); }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+    .btn-primary { background: var(--accent); color: white; }
+    .btn-primary:hover:not(:disabled) { background: #6a58e8; box-shadow: 0 0 16px var(--accent-glow); }
+    .btn-ghost { background: transparent; color: var(--text-sub); border: 1px solid var(--border); }
+    .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-danger { background: transparent; color: var(--red); border: 1px solid #30363d; }
+    .btn-green { background: var(--green); color: white; }
+    .btn-green:hover:not(:disabled) { background: #3fb950; }
 
-    @media (max-width: 850px) {
-      .tabs { grid-template-columns: repeat(3, 1fr); }
-      .content-grid { grid-template-columns: 1fr; }
-      .audio-master-panel { grid-template-columns: 1fr; }
+    /* ── 히어로 ── */
+    .hero {
+      text-align: center;
+      margin-bottom: 56px;
+    }
+    .hero-eyebrow {
+      display: inline-block;
+      font-size: 12px; font-weight: 700; letter-spacing: 2px;
+      color: var(--accent); text-transform: uppercase;
+      border: 1px solid var(--accent);
+      border-radius: 20px; padding: 4px 14px;
+      margin-bottom: 20px;
+    }
+    .hero h1 {
+      font-family: 'Noto Serif KR', serif;
+      font-size: clamp(32px, 5vw, 52px);
+      font-weight: 900;
+      line-height: 1.2;
+      letter-spacing: -1px;
+      color: var(--text);
+      margin-bottom: 16px;
+    }
+    .hero h1 em {
+      font-style: normal;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .hero p {
+      color: var(--text-sub);
+      font-size: 15px;
+      font-weight: 300;
+    }
+
+    /* ── 입력 카드 ── */
+    .input-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 32px;
+      margin-bottom: 40px;
+    }
+    .input-row {
+      display: grid;
+      grid-template-columns: 160px 1fr auto;
+      gap: 16px;
+      align-items: flex-end;
+    }
+    .field { display: flex; flex-direction: column; gap: 8px; }
+    .field label {
+      font-size: 12px; font-weight: 700; letter-spacing: 0.5px;
+      color: var(--text-sub); text-transform: uppercase;
+    }
+    .field input, .field select {
+      height: 50px; padding: 0 16px;
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 12px; color: var(--text);
+      font-size: 15px; outline: none;
+      font-family: 'Noto Sans KR', sans-serif;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .field input:focus, .field select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+    .field input::placeholder { color: var(--text-dim); }
+
+    .btn-big {
+      height: 50px; padding: 0 28px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: white; border: none; border-radius: 12px;
+      font-size: 15px; font-weight: 700; cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s;
+      font-family: 'Noto Sans KR', sans-serif;
+    }
+    .btn-big:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px var(--accent-glow);
+    }
+    .btn-big:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+    /* ── 상태 메시지 ── */
+    .status-bar {
+      text-align: center;
+      font-size: 14px;
+      color: var(--text-sub);
+      min-height: 24px;
+      margin-bottom: 32px;
+      transition: color 0.2s;
+    }
+    .status-bar.loading { color: var(--accent); }
+    .status-bar.done { color: #3fb950; }
+    .status-bar.error { color: var(--red); }
+
+    /* ── 결과 그리드 ── */
+    .result-grid {
+      display: grid;
+      grid-template-columns: 1.3fr 1fr;
+      gap: 24px;
+    }
+
+    /* ── 도서 카드 ── */
+    .book-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 32px;
+    }
+    .book-tag {
+      font-size: 11px; font-weight: 700; letter-spacing: 1px;
+      color: var(--accent); text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+    .book-title-display {
+      font-family: 'Noto Serif KR', serif;
+      font-size: 26px; font-weight: 900;
+      color: var(--text);
+      line-height: 1.3;
+      margin-bottom: 6px;
+    }
+    .book-author-display {
+      font-size: 14px; color: var(--text-sub);
+      margin-bottom: 24px;
+    }
+    .reason-label {
+      font-size: 11px; font-weight: 700; letter-spacing: 1px;
+      color: var(--text-dim); text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+    .reason-text {
+      font-size: 14px; line-height: 1.8;
+      color: var(--text-sub);
+      background: var(--bg);
+      border-radius: 12px;
+      padding: 18px;
+      border: 1px solid var(--border);
+      min-height: 80px;
+    }
+
+    /* ── TTS 패널 ── */
+    .tts-panel {
+      margin-top: 24px;
+      padding: 20px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+    }
+    .tts-panel-label {
+      font-size: 11px; font-weight: 700; letter-spacing: 1px;
+      color: var(--text-dim); text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+    .tts-selects {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+      margin-bottom: 12px;
+    }
+    .tts-selects select {
+      height: 38px; font-size: 13px;
+      background: var(--surface); border: 1px solid var(--border);
+      color: var(--text); border-radius: 8px; padding: 0 10px; outline: none;
+      font-family: 'Noto Sans KR', sans-serif;
+    }
+    .audio-box {
+      margin-top: 14px;
+      padding: 14px;
+      background: var(--surface);
+      border-radius: 10px;
+      display: none;
+    }
+    .audio-label { font-size: 12px; color: var(--accent); font-weight: 700; margin-bottom: 8px; }
+    audio { width: 100%; height: 36px; }
+    .dl-btn {
+      display: block; text-align: center;
+      background: #5b4fc4; color: white;
+      text-decoration: none; font-size: 13px; font-weight: 700;
+      padding: 10px; border-radius: 8px; margin-top: 10px;
+    }
+    .dl-btn:hover { background: #4c41b0; }
+
+    /* ── 히스토리 ── */
+    .history-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 28px;
+      display: flex; flex-direction: column;
+    }
+    .history-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .history-title { font-size: 14px; font-weight: 700; color: var(--text); }
+    .history-sub { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+    .history-list { flex: 1; overflow-y: auto; max-height: 480px; }
+    .h-item {
+      padding: 14px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .h-item:last-child { border-bottom: none; }
+    .h-meta { font-size: 11px; color: var(--text-dim); margin-bottom: 5px; font-weight: 500; }
+    .h-book { font-size: 14px; color: var(--accent); font-weight: 700; }
+    .h-author { font-size: 12px; color: var(--text-sub); margin-top: 2px; }
+    .h-mood {
+      font-size: 11px; color: var(--text-dim);
+      display: inline-block;
+      background: var(--surface2);
+      border-radius: 6px;
+      padding: 2px 8px;
+      margin-top: 4px;
+    }
+    .empty-hint { font-size: 13px; color: var(--text-dim); text-align: center; padding: 40px 0; }
+
+    /* ── 모달 오버레이 ── */
+    .modal-bg {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(4px);
+      z-index: 100;
+      display: flex; align-items: center; justify-content: center;
+      padding: 20px;
+    }
+    .modal-bg.hidden { display: none; }
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 36px;
+      width: min(420px, 100%);
+    }
+    .modal h2 {
+      font-family: 'Noto Serif KR', serif;
+      font-size: 22px; font-weight: 900;
+      margin-bottom: 6px;
+    }
+    .modal p { font-size: 13px; color: var(--text-sub); margin-bottom: 28px; }
+    .modal-tabs {
+      display: flex; gap: 8px; margin-bottom: 24px;
+      border-bottom: 1px solid var(--border);
+    }
+    .tab {
+      padding: 8px 16px; font-size: 13px; font-weight: 700;
+      border: none; background: none; cursor: pointer;
+      color: var(--text-dim); border-bottom: 2px solid transparent;
+      margin-bottom: -1px; font-family: 'Noto Sans KR', sans-serif;
+    }
+    .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+    .modal-field { margin-bottom: 16px; }
+    .modal-field label { display: block; font-size: 12px; font-weight: 700; color: var(--text-sub); margin-bottom: 6px; }
+    .modal-field input {
+      width: 100%; height: 46px; padding: 0 14px;
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 10px; color: var(--text); font-size: 14px; outline: none;
+      font-family: 'Noto Sans KR', sans-serif;
+    }
+    .modal-field input:focus { border-color: var(--accent); }
+    .modal-error { font-size: 13px; color: var(--red); margin-bottom: 12px; min-height: 18px; }
+    .modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 8px; }
+    .modal-close-x {
+      position: absolute; /* 모달 상단 X는 relative 부모 필요하지만 간단히 버튼으로 */
+    }
+
+    @media (max-width: 800px) {
+      .input-row { grid-template-columns: 1fr; }
+      .result-grid { grid-template-columns: 1fr; }
+      .tts-selects { grid-template-columns: 1fr; }
     }
   </style>
-
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-    import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/database.js";
-    import { GoogleGenAI } from "https://esm.run/@google/genai";
-
-    // 🛠️ 지정해주신 고유 파이어베이스 Key 정보 이식 완료
-    const firebaseConfig = {
-      apiKey: "AIzaSyBi_sBEMzAeJDsWJb6QjKqrYx4Gh38S7vE",
-      authDomain: "small-minseong.firebaseapp.com",
-      databaseURL: "https://small-minseong-default-rtdb.firebaseio.com",
-      projectId: "small-minseong",
-      storageBucket: "small-minseong.firebasestorage.app",
-      messagingSenderId: "363007349157",
-      appId: "1:363007349157:web:59d5a4b55213de2b65584c",
-      measurementId: "G-6G2GRWPC19"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const rtdb = getDatabase(app);
-    const provider = new GoogleAuthProvider();
-    const ai = new GoogleGenAI({ apiKey: firebaseConfig.apiKey });
-
-    let currentUser = null;
-    window.fetchedBooks = [];
-
-    // 인증 모니터링
-    onAuthStateChanged(auth, (user) => {
-      const authPanel = document.getElementById('authPanel');
-      if (user) {
-        currentUser = user;
-        authPanel.innerHTML = `
-          <span class="user-info">👋 ${user.displayName}님</span>
-          <button id="btnLogout" class="btn-auth btn-logout">로그아웃</button>
-        `;
-        document.getElementById('btnLogout').addEventListener('click', () => signOut(auth));
-        loadUserRTDBLogs(user.uid);
-      } else {
-        currentUser = null;
-        authPanel.innerHTML = `<button id="btnLogin" class="btn-auth btn-login">구글 로그인</button>`;
-        document.getElementById('btnLogin').addEventListener('click', () => signInWithPopup(auth, provider));
-        document.getElementById('historyList').innerHTML = '<p style="font-size:12px; color:#94a3b8; margin:0;">로그인 시 파이어베이스 실시간 데이터베이스(RTDB) 이력이 연동됩니다.</p>';
-      }
-    });
-
-    // 🤖 Gemini AI 실시간 트렌드 도서 데이터 생성
-    async function fetchBooksViaAI(age) {
-      const listContainer = document.getElementById('rankListContainer');
-      const loading = document.getElementById('loadingLayer');
-      
-      listContainer.innerHTML = "";
-      loading.style.display = "block";
-      document.getElementById('status').textContent = `AI가 ${age}대 트렌드를 실시간 탐색 중입니다...`;
-
-      try {
-        const prompt = `2026년 현재 한국에서 ${age}대 독자들이 가장 많이 읽고 선호하는 베스트셀러 도서 5권을 조사해서 알려줘. 
-        반드시 다른 설명글은 일절 제외하고 아래의 예시처럼 구조화된 순수 유효한 JSON 배열 포맷으로만 응답해줘.
-        [
-          {"t": "책제목1", "a": "저자1", "d": "이 세대가 이 책에 열광하는 구체적인 요인과 요약 내용", "r": ["가상 서평 리뷰1", "가상 서평 리뷰2"]},
-          {"t": "책제목2", "a": "저자2", "d": "이 세대가 이 책에 열광하는 구체적인 요인과 요약 내용", "r": ["리뷰1", "리뷰2"]}
-        ]`;
-
-        const response = await ai.models.generateContent({
-          model: 'gemini-2.5-flash',
-          contents: prompt,
-        });
-
-        let cleanJsonText = response.text.trim();
-        if (cleanJsonText.startsWith("```json")) {
-          cleanJsonText = cleanJsonText.replace(/```json|```/g, "").trim();
-        }
-
-        window.fetchedBooks = JSON.parse(cleanJsonText);
-        loading.style.display = "none";
-        document.getElementById('status').textContent = "트렌드 탐색 성공!";
-
-        // 동적 리스트 UI 바인딩
-        window.fetchedBooks.forEach((book, index) => {
-          const div = document.createElement('div');
-          div.className = `rank-item ${index === 0 ? 'selected' : ''}`;
-          div.setAttribute('data-index', index);
-          div.onclick = function() { selectBook(index, true); };
-          div.innerHTML = `
-            <span class="rank-number">${index + 1}</span>
-            <span class="rank-title">${escapeHTML(book.t)}</span>
-            <span class="rank-author">${escapeHTML(book.a)}</span>
-          `;
-          listContainer.appendChild(div);
-        });
-
-        selectBook(0, false);
-
-        // Realtime Database 동기화 적재
-        if (currentUser) {
-          const userLogRef = ref(rtdb, `user_logs/${currentUser.uid}`);
-          push(userLogRef, {
-            ageGroup: age,
-            topBook: window.fetchedBooks[0].t,
-            timestamp: Date.now()
-          });
-        }
-
-      } catch (error) {
-        console.error(error);
-        loading.style.display = "none";
-        document.getElementById('status').textContent = "데이터 로드 실패";
-        listContainer.innerHTML = "<p style='padding:15px; color:#ef4444; font-size:13px;'>AI 뱅크 통신 한도 또는 JSON 파싱 규격 에러입니다.</p>";
-      }
-    }
-
-    // 💾 Realtime Database 로그 실시간 수신 리스너
-    function loadUserRTDBLogs(uid) {
-      const userLogRef = ref(rtdb, `user_logs/${uid}`);
-      onValue(userLogRef, (snapshot) => {
-        const historyList = document.getElementById('historyList');
-        historyList.innerHTML = '';
-        const data = snapshot.val();
-        if(!data) {
-          historyList.innerHTML = '<p style="font-size:12px; color:#94a3b8; margin:0;">기록된 실시간 검색 이력이 없습니다.</p>';
-          return;
-        }
-        Object.values(data).reverse().forEach(log => {
-          const div = document.createElement('div');
-          div.className = 'history-item';
-          div.textContent = `• [${log.ageGroup}대] 1위 탐색: ${log.topBook} (Realtime DB 동기화 완료)`;
-          historyList.appendChild(div);
-        });
-      });
-    }
-
-    function escapeHTML(text) {
-      return String(text).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
-    }
-
-    window.fetchBooksViaAI = fetchBooksViaAI;
-  </script>
 </head>
 <body>
 
-  <div class="container">
-    <header>
-      <h1>AI 실시간 탐색 세대별 도서 트렌드 캐스터 🎧</h1>
-      <div class="auth-panel" id="authPanel"></div>
-    </header>
+<!-- ── 인증 모달 ── -->
+<div class="modal-bg" id="authModal">
+  <div class="modal">
+    <h2>👋 환영합니다</h2>
+    <p>로그인하면 나만의 도서 처방 기록이 클라우드에 저장됩니다.</p>
 
-    <div class="audio-master-panel">
-      <select id="modelSelect">
-        <option value="tts-1">tts-1 빠른 생성</option>
-        <option value="tts-1-hd">tts-1-hd 고품질</option>
-      </select>
-
-      <select id="voiceSelect">
-        <option value="alloy">alloy</option>
-        <option value="echo">echo</option>
-        <option value="fable">fable</option>
-        <option value="onyx">onyx</option>
-        <option value="nova">nova</option>
-        <option value="shimmer">shimmer</option>
-      </select>
-
-      <input id="speedInput" type="number" min="0.25" max="4.0" step="0.05" value="1.0" placeholder="속도" />
-      
-      <div id="status" class="status">대기 중</div>
+    <div class="modal-tabs">
+      <button class="tab active" id="tabLogin" onclick="switchTab('login')">로그인</button>
+      <button class="tab" id="tabSignup" onclick="switchTab('signup')">회원가입</button>
     </div>
 
-    <div class="tabs" id="tabContainer">
-      <button class="tab-btn active" onclick="switchTab('10', this)">10대</button>
-      <button class="tab-btn" onclick="switchTab('20', this)">20대</button>
-      <button class="tab-btn" onclick="switchTab('30', this)">30대</button>
-      <button class="tab-btn" onclick="switchTab('40', this)">40대</button>
-      <button class="tab-btn" onclick="switchTab('50', this)">50대</button>
-      <button class="tab-btn" onclick="switchTab('60', this)">60대+</button>
-    </div>
-
-    <div class="content-grid">
-      <div class="detail-box">
-        <div class="badge" id="infoBadge">도서 상세분석</div>
-        <div class="book-title-container">
-          <h2 class="book-title" id="detailTitle">상단 탭을 눌러 검색을 구동해 주세요.</h2>
-          <button class="tts-btn" id="makeSpeechBtn" onclick="generateOpenAITTS()">🔊 OpenAI TTS 캐스팅</button>
-        </div>
-        <div class="book-author" id="detailAuthor">저자 미정</div>
-
-        <div class="section-title">AI 심층 추천 사유 요약</div>
-        <p class="book-desc" id="detailDesc">사용자가 탭을 클릭하는 순간 인공지능이 데이터를 조합하여 동적 가독성을 확보합니다.</p>
-
-        <div id="resultBox" class="result-box hidden">
-          <div style="font-size: 12px; font-weight: bold; color:#7e57c2;">🎵 생성된 AI 오디오 플레이어</div>
-          <audio id="audioPlayer" controls></audio>
-          <a id="downloadLink" class="download-link" href="#">mp3 파일 다운로드</a>
-        </div>
-
-        <div class="section-title">독자 반응 실시간 소셜 리뷰</div>
-        <div id="detailReviews"></div>
+    <div id="formLogin">
+      <div class="modal-field">
+        <label>이메일</label>
+        <input type="email" id="loginEmail" placeholder="이메일 주소" />
       </div>
+      <div class="modal-field">
+        <label>비밀번호</label>
+        <input type="password" id="loginPw" placeholder="비밀번호" />
+      </div>
+      <div class="modal-error" id="loginErr"></div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="closeAuthModal()">나중에</button>
+        <button class="btn btn-primary" onclick="doLogin()">로그인</button>
+      </div>
+    </div>
 
-      <div>
-        <div style="font-weight: bold; margin-bottom: 12px; color: #475569;">
-          <span id="listAgeLabel">10대</span> 베스트 컬렉션 (AI 실시간)
-        </div>
-        
-        <div class="loading-layer" id="loadingLayer">
-          🚀 Gemini 인공지능 모델이 실시간 독서 트렌드를 탐색 중입니다...
-        </div>
-
-        <div class="rank-box">
-          <div class="rank-list" id="rankListContainer"></div>
-        </div>
-
-        <div class="history-box">
-          <h4 style="margin: 0 0 10px 0; font-size: 14px; color:#1e293b;">📊 나의 실시간 연동 이력 (Firebase RTDB)</h4>
-          <div id="historyList"></div>
-        </div>
+    <div id="formSignup" style="display:none;">
+      <div class="modal-field">
+        <label>이메일</label>
+        <input type="email" id="signupEmail" placeholder="이메일 주소" />
+      </div>
+      <div class="modal-field">
+        <label>비밀번호 (6자 이상)</label>
+        <input type="password" id="signupPw" placeholder="비밀번호 입력" />
+      </div>
+      <div class="modal-error" id="signupErr"></div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="closeAuthModal()">나중에</button>
+        <button class="btn btn-primary" onclick="doSignup()">회원가입</button>
       </div>
     </div>
   </div>
+</div>
 
-  <script>
-    // 🔗 제공해주신 Google Apps Script 서버 게이트웨이 주소 완벽 이식
-    const APPS_SCRIPT_URL = '[https://script.google.com/macros/s/AKfycbxDNMIktE288seW2Mr5YgksYFeAP3SNl8YyQZFa1DuvD0N_8pjRLDmxkZBYyQ4WGPmt/exec](https://script.google.com/macros/s/AKfycbxDNMIktE288seW2Mr5YgksYFeAP3SNl8YyQZFa1DuvD0N_8pjRLDmxkZBYyQ4WGPmt/exec)';
-    
-    window.currentAgeGroup = "10";
+<!-- ── 본문 ── -->
+<div class="wrap">
+  <div class="top-bar">
+    <div class="logo">Mind<span>Book</span> AI</div>
+    <div class="auth-area" id="authArea">
+      <button class="btn btn-primary" onclick="openAuthModal()">로그인 / 가입</button>
+    </div>
+  </div>
 
-    // 탭 변환 제어
-    function switchTab(age, element) {
-      window.currentAgeGroup = age;
-      const buttons = document.querySelectorAll('.tab-btn');
-      buttons.forEach(btn => btn.classList.remove('active'));
-      if(element) element.classList.add('active');
-      document.getElementById('listAgeLabel').textContent = age + "대";
-      
-      document.getElementById('resultBox').classList.add('hidden');
-      window.fetchBooksViaAI(age);
+  <div class="hero">
+    <div class="hero-eyebrow">AI 감성 도서 처방</div>
+    <h1>지금 이 감정에 딱 맞는<br /><em>한 권의 책</em>을 찾아드려요</h1>
+    <p>나이와 오늘의 기분을 알려주시면 Gemini AI가 맞춤 도서를 추천하고,<br />OpenAI 음성으로 이유를 읽어드립니다.</p>
+  </div>
+
+  <!-- 입력 -->
+  <div class="input-card">
+    <div class="input-row">
+      <div class="field">
+        <label>내 나이</label>
+        <input type="number" id="ageInput" min="1" max="120" value="25" placeholder="예: 25" />
+      </div>
+      <div class="field">
+        <label>오늘의 감정 / 기분</label>
+        <input type="text" id="moodInput" placeholder="예: 무기력하고 자꾸 눈물이 나 / 뭔가 새로 도전하고 싶어 설레" />
+      </div>
+      <button class="btn-big" id="submitBtn" onclick="recommendBook()">처방책 찾기 →</button>
+    </div>
+  </div>
+
+  <div class="status-bar" id="statusBox">나이와 기분을 입력하고 처방책 찾기를 눌러주세요.</div>
+
+  <!-- 결과 -->
+  <div class="result-grid">
+
+    <!-- 도서 상세 -->
+    <div class="book-card">
+      <div class="book-tag">오늘의 마음 처방 도서</div>
+      <div class="book-title-display" id="detailTitle">여기에 추천 도서가 표시됩니다</div>
+      <div class="book-author-display" id="detailAuthor">저자 미지정</div>
+
+      <div class="reason-label">AI 추천 사유</div>
+      <div class="reason-text" id="detailDesc">감정 상태를 분석하여 맞춤 처방을 불러옵니다.</div>
+
+      <!-- TTS -->
+      <div class="tts-panel">
+        <div class="tts-panel-label">🎙 음성 리포트 설정</div>
+        <div class="tts-selects">
+          <select id="modelSelect">
+            <option value="tts-1">tts-1 (빠른 생성)</option>
+            <option value="tts-1-hd">tts-1-hd (고품질)</option>
+          </select>
+          <select id="voiceSelect">
+            <option value="nova">nova (추천 여성)</option>
+            <option value="onyx">onyx (추천 남성)</option>
+            <option value="alloy">alloy</option>
+            <option value="echo">echo</option>
+            <option value="shimmer">shimmer</option>
+          </select>
+        </div>
+        <button class="btn btn-green" id="btnTts" onclick="generateTTS()" disabled style="width:100%; height:44px; font-size:15px;">
+          🎙 오디오 리포트 듣기
+        </button>
+        <div class="audio-box" id="audioBox">
+          <div class="audio-label">🎵 AI 성우 음성 브리핑</div>
+          <audio id="audioPlayer" controls></audio>
+          <a id="downloadLink" class="dl-btn" href="#">mp3로 소장하기 ↓</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- 히스토리 -->
+    <div class="history-card">
+      <div class="history-header">
+        <div>
+          <div class="history-title">📚 내 처방 기록</div>
+          <div class="history-sub">Firebase 실시간 저장</div>
+        </div>
+      </div>
+      <div class="history-list" id="historyList">
+        <div class="empty-hint">로그인하면 기록이 이곳에 쌓입니다.</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── Firebase + Gemini 모듈 스크립트 ── -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+  import {
+    getAuth,
+    createUserWithEmailAndPassword,
+    signInWithEmailAndPassword,
+    signOut,
+    onAuthStateChanged
+  } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+  import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/database.js";
+  import { GoogleGenAI } from "https://esm.run/@google/genai";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBi_sBEMzAeJDsWJb6QjKqrYx4Gh38S7vE",
+    authDomain: "small-minseong.firebaseapp.com",
+    databaseURL: "https://small-minseong-default-rtdb.firebaseio.com",
+    projectId: "small-minseong",
+    storageBucket: "small-minseong.firebasestorage.app",
+    messagingSenderId: "363007349157",
+    appId: "1:363007349157:web:59d5a4b55213de2b65584c"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const rtdb = getDatabase(app);
+  const ai = new GoogleGenAI({ apiKey: firebaseConfig.apiKey });
+
+  let currentUser = null;
+
+  // ── 인증 상태 감지 ──
+  onAuthStateChanged(auth, (user) => {
+    currentUser = user;
+    const area = document.getElementById('authArea');
+    if (user) {
+      area.innerHTML = `
+        <div class="user-chip">✉ ${escapeHTML(user.email)}</div>
+        <button class="btn btn-danger" id="logoutBtn">로그아웃</button>
+      `;
+      document.getElementById('logoutBtn').onclick = () => signOut(auth);
+      loadHistory(user.uid);
+      closeAuthModal();
+    } else {
+      area.innerHTML = `<button class="btn btn-primary" onclick="openAuthModal()">로그인 / 가입</button>`;
+      document.getElementById('historyList').innerHTML = '<div class="empty-hint">로그인하면 기록이 이곳에 쌓입니다.</div>';
     }
+  });
 
-    // 도서 정보 매핑
-    function selectBook(index, shouldSpeak) {
-      if(!window.fetchedBooks || window.fetchedBooks.length === 0) return;
-      
-      const items = document.querySelectorAll('.rank-item');
-      items.forEach(item => item.classList.remove('selected'));
-      const targetItem = document.querySelector(`.rank-item[data-index='${index}']`);
-      if (targetItem) targetItem.classList.add('selected');
+  // ── 회원가입 ──
+  window.doSignup = async function() {
+    const email = document.getElementById('signupEmail').value.trim();
+    const pw = document.getElementById('signupPw').value;
+    const err = document.getElementById('signupErr');
+    err.textContent = '';
+    if (!email || !pw) { err.textContent = '이메일과 비밀번호를 입력해주세요.'; return; }
+    try {
+      await createUserWithEmailAndPassword(auth, email, pw);
+    } catch(e) {
+      err.textContent = firebaseErrMsg(e.code);
+    }
+  };
 
-      const book = window.fetchedBooks[index];
-      document.getElementById('infoBadge').textContent = `순위 ${index + 1}위 도서`;
-      document.getElementById('detailTitle').textContent = book.t;
-      document.getElementById('detailAuthor').textContent = book.a + " 지음";
-      document.getElementById('detailDesc').textContent = book.d;
+  // ── 로그인 ──
+  window.doLogin = async function() {
+    const email = document.getElementById('loginEmail').value.trim();
+    const pw = document.getElementById('loginPw').value;
+    const err = document.getElementById('loginErr');
+    err.textContent = '';
+    if (!email || !pw) { err.textContent = '이메일과 비밀번호를 입력해주세요.'; return; }
+    try {
+      await signInWithEmailAndPassword(auth, email, pw);
+    } catch(e) {
+      err.textContent = firebaseErrMsg(e.code);
+    }
+  };
 
-      const reviewsContainer = document.getElementById('detailReviews');
-      reviewsContainer.innerHTML = '';
-      if(book.r && Array.isArray(book.r)) {
-        book.r.forEach(review => {
-          const rDiv = document.createElement('div');
-          rDiv.className = 'review-item';
-          rDiv.textContent = `💬 "${review}"`;
-          reviewsContainer.appendChild(rDiv);
+  function firebaseErrMsg(code) {
+    const map = {
+      'auth/email-already-in-use': '이미 사용 중인 이메일입니다.',
+      'auth/invalid-email': '올바른 이메일 형식이 아닙니다.',
+      'auth/weak-password': '비밀번호는 6자 이상이어야 합니다.',
+      'auth/user-not-found': '등록된 계정이 없습니다.',
+      'auth/wrong-password': '비밀번호가 틀렸습니다.',
+      'auth/invalid-credential': '이메일 또는 비밀번호가 올바르지 않습니다.',
+    };
+    return map[code] || '오류가 발생했습니다: ' + code;
+  }
+
+  // ── 도서 추천 ──
+  window.recommendBook = async function() {
+    const age  = document.getElementById('ageInput').value;
+    const mood = document.getElementById('moodInput').value.trim();
+    const btn  = document.getElementById('submitBtn');
+    const status = document.getElementById('statusBox');
+
+    if (!age || !mood) { alert('나이와 기분을 모두 입력해주세요!'); return; }
+
+    try {
+      btn.disabled = true;
+      setStatus('loading', '🔍 Gemini AI가 나이와 감정을 분석하여 책을 탐색 중...');
+      document.getElementById('audioBox').style.display = 'none';
+      document.getElementById('btnTts').disabled = true;
+
+      const prompt = `나이는 대한민국 기준 ${age}살이고, 오늘 느끼는 심리적 감정 상태는 "${mood}" 상태야.
+이 나이와 마음 상태에 완벽하게 어울리는 책 딱 1권을 신중하게 골라줘.
+다른 설명 없이, 오직 아래 JSON 형식만 출력해줘.
+{"title": "책 제목", "author": "저자 이름", "reason": "이 책을 추천하는 깊고 따뜻한 이유 (200자 내외)"}`;
+
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+      });
+
+      let clean = response.text.trim().replace(/```json|```/g, '').trim();
+      const data = JSON.parse(clean);
+
+      document.getElementById('detailTitle').textContent  = data.title;
+      document.getElementById('detailAuthor').textContent = `${data.author} 지음`;
+      document.getElementById('detailDesc').textContent   = data.reason;
+      document.getElementById('btnTts').disabled = false;
+
+      setStatus('done', '✅ 맞춤 도서 추천 완료!');
+
+      // 파이어베이스 저장
+      if (currentUser) {
+        const logsRef = ref(rtdb, `mind_book_logs/${currentUser.uid}`);
+        push(logsRef, {
+          age, mood,
+          bookTitle: data.title,
+          bookAuthor: data.author,
+          reason: data.reason,
+          timestamp: Date.now()
         });
       }
-      
-      document.getElementById('resultBox').classList.add('hidden');
+
+    } catch (e) {
+      console.error(e);
+      setStatus('error', '❌ 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+    } finally {
+      btn.disabled = false;
     }
+  };
 
-    // 🎙️ 핵심: 앱스 스크립트 서버를 경유하여 고품질 OpenAI TTS mp3를 생성 및 수신하는 엔진
-    async function generateOpenAITTS() {
-      const title = document.getElementById('detailTitle').textContent;
-      const author = document.getElementById('detailAuthor').textContent;
-      const desc = document.getElementById('detailDesc').textContent;
-      
-      const fullSpeechText = `선택하신 도서는 ${title}, 저자는 ${author}입니다. 인공지능 분석 내용입니다. ${desc}`;
-
-      const model = document.getElementById('modelSelect').value;
-      const voice = document.getElementById('voiceSelect').value;
-      const speed = Number(document.getElementById('speedInput').value || 1.0);
-      const makeSpeechBtn = document.getElementById('makeSpeechBtn');
-      const statusBox = document.getElementById('status');
-      const resultBox = document.getElementById('resultBox');
-      const audioPlayer = document.getElementById('audioPlayer');
-      const downloadLink = document.getElementById('downloadLink');
-
-      try {
-        makeSpeechBtn.disabled = true;
-        makeSpeechBtn.textContent = "🎙️ 음성 변환 중...";
-        statusBox.textContent = "Apps Script 서버에 오디오 요청 전송 중...";
-
-        const response = await fetch(APPS_SCRIPT_URL, {
-          method: 'POST',
-          body: JSON.stringify({
-            type: 'tts',
-            text: fullSpeechText,
-            model: model,
-            voice: voice,
-            speed: speed
-          })
-        });
-
-        const data = await response.json();
-
-        if (data.error) throw new Error(data.error);
-        if (!data.audioBase64) throw new Error('음성 바이너리 데이터를 받지 못했습니다.');
-
-        // Base64 데이터를 재생 가능한 오디오 오브젝트 URL로 변환
-        const byteCharacters = atob(data.audioBase64);
-        const byteArrays = [];
-        for (let offset = 0; offset < byteCharacters.length; offset += 512) {
-          const slice = byteCharacters.slice(offset, offset + 512);
-          const byteNumbers = new Array(slice.length);
-          for (let i = 0; i < slice.length; i++) {
-            byteNumbers[i] = slice.charCodeAt(i);
-          }
-          byteArrays.push(new Uint8Array(byteNumbers));
-        }
-        
-        const blob = new Blob(byteArrays, { type: 'audio/mpeg' });
-        const audioUrl = URL.createObjectURL(blob);
-
-        // 오디오 플레이어 로드 및 파일 다운로드 링크 셋팅
-        audioPlayer.src = audioUrl;
-        downloadLink.href = audioUrl;
-        
-        // 가독성 높은 동적 타임스탬프 파일명 매핑
-        const now = new Date();
-        downloadLink.download = `book-caster-${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}.mp3`;
-        
-        resultBox.classList.remove('hidden');
-        statusBox.textContent = "오디오 합성 완료!";
-        audioPlayer.play();
-
-      } catch (error) {
-        console.error(error);
-        statusBox.textContent = "TTS 요청 실패";
-        alert('OpenAI TTS 게이트웨이 통신 실패:\n' + error.message);
-      } finally {
-        makeSpeechBtn.disabled = false;
-        makeSpeechBtn.textContent = "🔊 OpenAI TTS 캐스팅";
+  // ── 히스토리 로드 ──
+  function loadHistory(uid) {
+    const logsRef = ref(rtdb, `mind_book_logs/${uid}`);
+    onValue(logsRef, (snap) => {
+      const list = document.getElementById('historyList');
+      const data = snap.val();
+      if (!data) {
+        list.innerHTML = '<div class="empty-hint">아직 처방 기록이 없습니다.</div>';
+        return;
       }
-    }
-
-    // 초기 실행 트리거
-    window.addEventListener('load', () => {
-      setTimeout(() => {
-        switchTab('10', document.querySelector('.tab-btn'));
-      }, 500);
+      list.innerHTML = '';
+      Object.values(data).reverse().forEach(log => {
+        const d = new Date(log.timestamp);
+        const dateStr = `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+        const el = document.createElement('div');
+        el.className = 'h-item';
+        el.innerHTML = `
+          <div class="h-meta">${dateStr} · ${escapeHTML(String(log.age))}세</div>
+          <div class="h-book">📖 ${escapeHTML(log.bookTitle)}</div>
+          <div class="h-author">${escapeHTML(log.bookAuthor)}</div>
+          <div class="h-mood">${escapeHTML(log.mood)}</div>
+        `;
+        list.appendChild(el);
+      });
     });
-  </script>
+  }
+
+  function setStatus(type, msg) {
+    const el = document.getElementById('statusBox');
+    el.className = 'status-bar ' + type;
+    el.textContent = msg;
+  }
+
+  function escapeHTML(t) {
+    return String(t).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;');
+  }
+</script>
+
+<!-- ── TTS + 모달 일반 스크립트 ── -->
+<script>
+  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxcOgNEkwnZ6emEd2BwU-kul_Xd_pg7NEuyRQhXpBJuYkisTq7r2Gj3uPy9gyY4nJ-duw/exec';
+
+  // ── 모달 제어 ──
+  function openAuthModal()  { document.getElementById('authModal').classList.remove('hidden'); }
+  function closeAuthModal() { document.getElementById('authModal').classList.add('hidden'); }
+  window.openAuthModal  = openAuthModal;
+  window.closeAuthModal = closeAuthModal;
+
+  function switchTab(tab) {
+    document.getElementById('formLogin').style.display  = tab === 'login'  ? 'block' : 'none';
+    document.getElementById('formSignup').style.display = tab === 'signup' ? 'block' : 'none';
+    document.getElementById('tabLogin').classList.toggle('active',  tab === 'login');
+    document.getElementById('tabSignup').classList.toggle('active', tab === 'signup');
+  }
+  window.switchTab = switchTab;
+
+  // 모달 바깥 클릭 시 닫기
+  document.getElementById('authModal').addEventListener('click', function(e) {
+    if (e.target === this) closeAuthModal();
+  });
+
+  // ── TTS 생성 ──
+  async function generateTTS() {
+    const title  = document.getElementById('detailTitle').textContent;
+    const author = document.getElementById('detailAuthor').textContent;
+    const desc   = document.getElementById('detailDesc').textContent;
+    const fullText = `오늘 당신에게 추천하는 책은, ${title}, 저자는 ${author}입니다. 추천 이유를 말씀드립니다. ${desc}`;
+
+    const model = document.getElementById('modelSelect').value;
+    const voice = document.getElementById('voiceSelect').value;
+    const btn   = document.getElementById('btnTts');
+    const status = document.getElementById('statusBox');
+
+    try {
+      btn.disabled = true;
+      btn.textContent = '⏳ 음성 생성 중...';
+      status.className = 'status-bar loading';
+      status.textContent = 'OpenAI TTS 엔진이 음성을 생성 중입니다...';
+
+      const res = await fetch(APPS_SCRIPT_URL, {
+        method: 'POST',
+        body: JSON.stringify({ type: 'tts', text: fullText, model, voice, speed: 1.0 })
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+
+      // base64 → Blob → URL
+      const bytes = atob(data.audioBase64);
+      const arr = [];
+      for (let i = 0; i < bytes.length; i += 512) {
+        const sl = bytes.slice(i, i + 512);
+        arr.push(new Uint8Array([...sl].map(c => c.charCodeAt(0))));
+      }
+      const blob = new Blob(arr, { type: 'audio/mpeg' });
+      const url  = URL.createObjectURL(blob);
+
+      const player = document.getElementById('audioPlayer');
+      player.src = url;
+      document.getElementById('downloadLink').href = url;
+      document.getElementById('downloadLink').download = `mindbook-${Date.now()}.mp3`;
+      document.getElementById('audioBox').style.display = 'block';
+
+      status.className = 'status-bar done';
+      status.textContent = '🎵 음성 리포트 준비 완료!';
+      player.play();
+
+    } catch (e) {
+      console.error(e);
+      status.className = 'status-bar error';
+      status.textContent = '❌ 음성 생성 실패: ' + e.message;
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '🎙 오디오 리포트 듣기';
+    }
+  }
+  window.generateTTS = generateTTS;
+</script>
 </body>
 </html>
