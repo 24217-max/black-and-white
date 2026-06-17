@@ -3,19 +3,19 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>실시간 AI 트렌드 검색 북 대시보드</title>
+  <title>AI 실시간 탐색 세대별 도서 트렌드 캐스터</title>
   <style>
     * { box-sizing: border-box; }
     body {
       margin: 0; min-height: 100vh;
-      background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+      background: linear-gradient(135deg, #e3f2fd, #fce4ec);
       font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', Arial, sans-serif;
       color: #1e293b; line-height: 1.6;
     }
     .container {
-      width: min(1200px, 94%); margin: 30px auto;
+      width: min(1200px, 94%); margin: 40px auto;
       background: #ffffff; border-radius: 28px; padding: 32px;
-      box-shadow: 0 20px 40px rgba(15, 23, 42, 0.08);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12);
     }
     header {
       display: flex; justify-content: space-between; align-items: center;
@@ -31,18 +31,15 @@
     .btn-login { background: #2563eb; color: white; }
     .btn-logout { background: #64748b; color: white; }
 
-    /* 오디오 바 */
+    /* 오디오 제어 마스터 패널 (OpenAI TTS 전용 옵션 포함) */
     .audio-master-panel {
-      display: flex; justify-content: center; gap: 10px; margin-bottom: 24px;
-      background: #f8fafc; padding: 12px; border-radius: 16px; border: 1px solid #e2e8f0;
+      display: grid; grid-template-columns: repeat(3, 1fr) auto; gap: 10px; margin-bottom: 24px;
+      background: #f8fafc; padding: 16px; border-radius: 16px; border: 1px solid #e2e8f0;
     }
-    .audio-btn {
-      border: none; padding: 8px 16px; font-size: 14px; font-weight: bold;
-      border-radius: 8px; cursor: pointer; transition: all 0.2s;
+    select, input {
+      height: 40px; padding: 0 12px; border: 1px solid #ddd;
+      border-radius: 10px; font-size: 14px; outline: none; background: white;
     }
-    .btn-stop { background: #ef4444; color: white; }
-    .btn-pause { background: #f59e0b; color: white; }
-    .btn-resume { background: #10b981; color: white; }
 
     /* 탭 스타일 */
     .tabs { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-bottom: 28px; }
@@ -65,6 +62,7 @@
     .book-title-container { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
     .book-title { font-size: 22px; margin: 0; color: #0f172a; font-weight: 800; }
     .tts-btn { background: #10b981; color: white; border: none; padding: 8px 14px; font-size: 14px; border-radius: 10px; cursor: pointer; font-weight: bold; }
+    .tts-btn:disabled { background: #cbd5e1; cursor: not-allowed; }
     .book-author { font-size: 15px; color: #64748b; margin: 6px 0 24px; }
     .section-title { font-size: 16px; font-weight: bold; color: #334155; margin: 24px 0 8px; border-left: 4px solid #2563eb; padding-left: 10px; }
     .book-desc { font-size: 14px; color: #334155; background: white; padding: 16px; border-radius: 14px; border: 1px solid #e2e8f0; margin: 0; }
@@ -80,8 +78,16 @@
     .rank-title { font-weight: 600; color: #1e293b; flex-grow: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .rank-author { font-size: 13px; color: #64748b; padding-left: 10px; }
 
-    /* 로딩 인디케이터 */
+    /* 로딩 및 결과 인디케이터 */
     .loading-layer { display: none; text-align: center; padding: 40px; font-weight: bold; color: #2563eb; }
+    .status { min-height: 24px; margin-top: 10px; color: #2563eb; font-size: 14px; font-weight: bold; text-align: center; }
+    
+    .result-box { margin-top: 15px; padding: 12px; border-radius: 14px; background: #f0f4f8; border: 1px solid #d0d7de; }
+    audio { width: 100%; margin-top: 5px; }
+    .download-link {
+      display: block; text-align: center; background: #7e57c2; color: white; 
+      padding: 8px; border-radius: 8px; text-decoration: none; font-size: 13px; font-weight: bold; margin-top: 8px;
+    }
 
     .history-box { margin-top: 24px; background: #f8fafc; padding: 16px; border-radius: 16px; border: 1px solid #e2e8f0; }
     .history-item { font-size: 13px; color: #475569; padding: 4px 0; border-bottom: 1px dashed #e2e8f0; }
@@ -89,6 +95,7 @@
     @media (max-width: 850px) {
       .tabs { grid-template-columns: repeat(3, 1fr); }
       .content-grid { grid-template-columns: 1fr; }
+      .audio-master-panel { grid-template-columns: 1fr; }
     }
   </style>
 
@@ -98,7 +105,7 @@
     import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/database.js";
     import { GoogleGenAI } from "https://esm.run/@google/genai";
 
-    // 🛠️ 전달받은 소중한 키 정보 완벽 적용 완료!
+    // 🛠️ 지정해주신 고유 파이어베이스 Key 정보 이식 완료
     const firebaseConfig = {
       apiKey: "AIzaSyBi_sBEMzAeJDsWJb6QjKqrYx4Gh38S7vE",
       authDomain: "small-minseong.firebaseapp.com",
@@ -110,19 +117,16 @@
       measurementId: "G-6G2GRWPC19"
     };
 
-    // 인스턴스 초기화
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const rtdb = getDatabase(app);
     const provider = new GoogleAuthProvider();
-    
-    // 파이어베이스 API 키를 바탕으로 인공지능 모델 동시 매핑
     const ai = new GoogleGenAI({ apiKey: firebaseConfig.apiKey });
 
     let currentUser = null;
     window.fetchedBooks = [];
 
-    // 인증 유저 세션 구독
+    // 인증 모니터링
     onAuthStateChanged(auth, (user) => {
       const authPanel = document.getElementById('authPanel');
       if (user) {
@@ -137,18 +141,18 @@
         currentUser = null;
         authPanel.innerHTML = `<button id="btnLogin" class="btn-auth btn-login">구글 로그인</button>`;
         document.getElementById('btnLogin').addEventListener('click', () => signInWithPopup(auth, provider));
-        document.getElementById('historyList').innerHTML = '<p style="font-size:12px; color:#94a3b8; margin:0;">로그인 시 실시간 데이터베이스(RTDB) 이력이 연동됩니다.</p>';
+        document.getElementById('historyList').innerHTML = '<p style="font-size:12px; color:#94a3b8; margin:0;">로그인 시 파이어베이스 실시간 데이터베이스(RTDB) 이력이 연동됩니다.</p>';
       }
     });
 
-    // 🤖 AI 탐색 엔진 내부 연동 로직
+    // 🤖 Gemini AI 실시간 트렌드 도서 데이터 생성
     async function fetchBooksViaAI(age) {
       const listContainer = document.getElementById('rankListContainer');
       const loading = document.getElementById('loadingLayer');
       
       listContainer.innerHTML = "";
       loading.style.display = "block";
-      playCustomTTS(`${age}대 트렌드 도서를 제미나이 AI가 탐색하고 있습니다.`);
+      document.getElementById('status').textContent = `AI가 ${age}대 트렌드를 실시간 탐색 중입니다...`;
 
       try {
         const prompt = `2026년 현재 한국에서 ${age}대 독자들이 가장 많이 읽고 선호하는 베스트셀러 도서 5권을 조사해서 알려줘. 
@@ -170,8 +174,9 @@
 
         window.fetchedBooks = JSON.parse(cleanJsonText);
         loading.style.display = "none";
+        document.getElementById('status').textContent = "트렌드 탐색 성공!";
 
-        // 동적 UI 바인딩
+        // 동적 리스트 UI 바인딩
         window.fetchedBooks.forEach((book, index) => {
           const div = document.createElement('div');
           div.className = `rank-item ${index === 0 ? 'selected' : ''}`;
@@ -186,9 +191,8 @@
         });
 
         selectBook(0, false);
-        playCustomTTS(`탐색이 완료되었습니다. 1위 도서는 ${window.fetchedBooks[0].t} 입니다.`);
 
-        // 로그인 유저 한정 Realtime Database에 기록 push 저장 연동
+        // Realtime Database 동기화 적재
         if (currentUser) {
           const userLogRef = ref(rtdb, `user_logs/${currentUser.uid}`);
           push(userLogRef, {
@@ -201,11 +205,12 @@
       } catch (error) {
         console.error(error);
         loading.style.display = "none";
-        listContainer.innerHTML = "<p style='padding:15px; color:#ef4444; font-size:13px;'>인증 토큰 동기화 혹은 API 호출 한도로 인해 데이터를 가져오지 못했습니다.</p>";
+        document.getElementById('status').textContent = "데이터 로드 실패";
+        listContainer.innerHTML = "<p style='padding:15px; color:#ef4444; font-size:13px;'>AI 뱅크 통신 한도 또는 JSON 파싱 규격 에러입니다.</p>";
       }
     }
 
-    // 💾 Realtime Database 데이터 실시간 수신 리스너 
+    // 💾 Realtime Database 로그 실시간 수신 리스너
     function loadUserRTDBLogs(uid) {
       const userLogRef = ref(rtdb, `user_logs/${uid}`);
       onValue(userLogRef, (snapshot) => {
@@ -213,14 +218,13 @@
         historyList.innerHTML = '';
         const data = snapshot.val();
         if(!data) {
-          historyList.innerHTML = '<p style="font-size:12px; color:#94a3b8; margin:0;">아직 실시간 검색 이력이 기록되지 않았습니다.</p>';
+          historyList.innerHTML = '<p style="font-size:12px; color:#94a3b8; margin:0;">기록된 실시간 검색 이력이 없습니다.</p>';
           return;
         }
-        // 오브젝트 루프 돌며 로그 역순 출력
         Object.values(data).reverse().forEach(log => {
           const div = document.createElement('div');
           div.className = 'history-item';
-          div.textContent = `• [${log.ageGroup}대] 1위 도서: ${log.topBook} (Realtime DB 동기화 완료)`;
+          div.textContent = `• [${log.ageGroup}대] 1위 탐색: ${log.topBook} (Realtime DB 동기화 완료)`;
           historyList.appendChild(div);
         });
       });
@@ -237,14 +241,28 @@
 
   <div class="container">
     <header>
-      <h1>나만의 주제: AI 실시간 베스트셀러 대시보드 🎧</h1>
+      <h1>AI 실시간 탐색 세대별 도서 트렌드 캐스터 🎧</h1>
       <div class="auth-panel" id="authPanel"></div>
     </header>
 
     <div class="audio-master-panel">
-      <button class="audio-btn btn-pause" onclick="window.speechSynthesis.pause()">❚❚ 일시정지</button>
-      <button class="audio-btn btn-resume" onclick="window.speechSynthesis.resume()">▶ 이어듣기</button>
-      <button class="audio-btn btn-stop" onclick="window.speechSynthesis.cancel()">◼ 음성 끄기</button>
+      <select id="modelSelect">
+        <option value="tts-1">tts-1 빠른 생성</option>
+        <option value="tts-1-hd">tts-1-hd 고품질</option>
+      </select>
+
+      <select id="voiceSelect">
+        <option value="alloy">alloy</option>
+        <option value="echo">echo</option>
+        <option value="fable">fable</option>
+        <option value="onyx">onyx</option>
+        <option value="nova">nova</option>
+        <option value="shimmer">shimmer</option>
+      </select>
+
+      <input id="speedInput" type="number" min="0.25" max="4.0" step="0.05" value="1.0" placeholder="속도" />
+      
+      <div id="status" class="status">대기 중</div>
     </div>
 
     <div class="tabs" id="tabContainer">
@@ -258,15 +276,21 @@
 
     <div class="content-grid">
       <div class="detail-box">
-        <div class="badge" id="infoBadge">도서 분석 창</div>
+        <div class="badge" id="infoBadge">도서 상세분석</div>
         <div class="book-title-container">
           <h2 class="book-title" id="detailTitle">상단 탭을 눌러 검색을 구동해 주세요.</h2>
-          <button class="tts-btn" onclick="playCurrentBookTTS()">🔊 상세 설명 음성 듣기</button>
+          <button class="tts-btn" id="makeSpeechBtn" onclick="generateOpenAITTS()">🔊 OpenAI TTS 캐스팅</button>
         </div>
         <div class="book-author" id="detailAuthor">저자 미정</div>
 
         <div class="section-title">AI 심층 추천 사유 요약</div>
         <p class="book-desc" id="detailDesc">사용자가 탭을 클릭하는 순간 인공지능이 데이터를 조합하여 동적 가독성을 확보합니다.</p>
+
+        <div id="resultBox" class="result-box hidden">
+          <div style="font-size: 12px; font-weight: bold; color:#7e57c2;">🎵 생성된 AI 오디오 플레이어</div>
+          <audio id="audioPlayer" controls></audio>
+          <a id="downloadLink" class="download-link" href="#">mp3 파일 다운로드</a>
+        </div>
 
         <div class="section-title">독자 반응 실시간 소셜 리뷰</div>
         <div id="detailReviews"></div>
@@ -278,7 +302,7 @@
         </div>
         
         <div class="loading-layer" id="loadingLayer">
-          🚀 Gemini 인공지능 모델이 실시간 독서 트렌드를 가공 및 파싱 중입니다...
+          🚀 Gemini 인공지능 모델이 실시간 독서 트렌드를 탐색 중입니다...
         </div>
 
         <div class="rank-box">
@@ -294,27 +318,24 @@
   </div>
 
   <script>
-    // TTS 오디오 허브 활성화
-    function playCustomTTS(text) {
-      if (!('speechSynthesis' in window)) return;
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'ko-KR';
-      utterance.rate = 1.05;
-      window.speechSynthesis.speak(utterance);
-    }
+    // 🔗 제공해주신 Google Apps Script 서버 게이트웨이 주소 완벽 이식
+    const APPS_SCRIPT_URL = '[https://script.google.com/macros/s/AKfycbxDNMIktE288seW2Mr5YgksYFeAP3SNl8YyQZFa1DuvD0N_8pjRLDmxkZBYyQ4WGPmt/exec](https://script.google.com/macros/s/AKfycbxDNMIktE288seW2Mr5YgksYFeAP3SNl8YyQZFa1DuvD0N_8pjRLDmxkZBYyQ4WGPmt/exec)';
+    
+    window.currentAgeGroup = "10";
 
-    // 탭 이동 제어
+    // 탭 변환 제어
     function switchTab(age, element) {
+      window.currentAgeGroup = age;
       const buttons = document.querySelectorAll('.tab-btn');
       buttons.forEach(btn => btn.classList.remove('active'));
       if(element) element.classList.add('active');
       document.getElementById('listAgeLabel').textContent = age + "대";
       
+      document.getElementById('resultBox').classList.add('hidden');
       window.fetchBooksViaAI(age);
     }
 
-    // 도서 상세 맵 바인딩
+    // 도서 정보 매핑
     function selectBook(index, shouldSpeak) {
       if(!window.fetchedBooks || window.fetchedBooks.length === 0) return;
       
@@ -326,7 +347,7 @@
       const book = window.fetchedBooks[index];
       document.getElementById('infoBadge').textContent = `순위 ${index + 1}위 도서`;
       document.getElementById('detailTitle').textContent = book.t;
-      document.getElementById('detailAuthor').textContent = book.a;
+      document.getElementById('detailAuthor').textContent = book.a + " 지음";
       document.getElementById('detailDesc').textContent = book.d;
 
       const reviewsContainer = document.getElementById('detailReviews');
@@ -339,18 +360,86 @@
           reviewsContainer.appendChild(rDiv);
         });
       }
-
-      if (shouldSpeak) playCurrentBookTTS();
+      
+      document.getElementById('resultBox').classList.add('hidden');
     }
 
-    function playCurrentBookTTS() {
+    // 🎙️ 핵심: 앱스 스크립트 서버를 경유하여 고품질 OpenAI TTS mp3를 생성 및 수신하는 엔진
+    async function generateOpenAITTS() {
       const title = document.getElementById('detailTitle').textContent;
       const author = document.getElementById('detailAuthor').textContent;
       const desc = document.getElementById('detailDesc').textContent;
-      playCustomTTS(`제목 ${title}, 저자 ${author}. 추천 요약입니다. ${desc}`);
+      
+      const fullSpeechText = `선택하신 도서는 ${title}, 저자는 ${author}입니다. 인공지능 분석 내용입니다. ${desc}`;
+
+      const model = document.getElementById('modelSelect').value;
+      const voice = document.getElementById('voiceSelect').value;
+      const speed = Number(document.getElementById('speedInput').value || 1.0);
+      const makeSpeechBtn = document.getElementById('makeSpeechBtn');
+      const statusBox = document.getElementById('status');
+      const resultBox = document.getElementById('resultBox');
+      const audioPlayer = document.getElementById('audioPlayer');
+      const downloadLink = document.getElementById('downloadLink');
+
+      try {
+        makeSpeechBtn.disabled = true;
+        makeSpeechBtn.textContent = "🎙️ 음성 변환 중...";
+        statusBox.textContent = "Apps Script 서버에 오디오 요청 전송 중...";
+
+        const response = await fetch(APPS_SCRIPT_URL, {
+          method: 'POST',
+          body: JSON.stringify({
+            type: 'tts',
+            text: fullSpeechText,
+            model: model,
+            voice: voice,
+            speed: speed
+          })
+        });
+
+        const data = await response.json();
+
+        if (data.error) throw new Error(data.error);
+        if (!data.audioBase64) throw new Error('음성 바이너리 데이터를 받지 못했습니다.');
+
+        // Base64 데이터를 재생 가능한 오디오 오브젝트 URL로 변환
+        const byteCharacters = atob(data.audioBase64);
+        const byteArrays = [];
+        for (let offset = 0; offset < byteCharacters.length; offset += 512) {
+          const slice = byteCharacters.slice(offset, offset + 512);
+          const byteNumbers = new Array(slice.length);
+          for (let i = 0; i < slice.length; i++) {
+            byteNumbers[i] = slice.charCodeAt(i);
+          }
+          byteArrays.push(new Uint8Array(byteNumbers));
+        }
+        
+        const blob = new Blob(byteArrays, { type: 'audio/mpeg' });
+        const audioUrl = URL.createObjectURL(blob);
+
+        // 오디오 플레이어 로드 및 파일 다운로드 링크 셋팅
+        audioPlayer.src = audioUrl;
+        downloadLink.href = audioUrl;
+        
+        // 가독성 높은 동적 타임스탬프 파일명 매핑
+        const now = new Date();
+        downloadLink.download = `book-caster-${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}.mp3`;
+        
+        resultBox.classList.remove('hidden');
+        statusBox.textContent = "오디오 합성 완료!";
+        audioPlayer.play();
+
+      } catch (error) {
+        console.error(error);
+        statusBox.textContent = "TTS 요청 실패";
+        alert('OpenAI TTS 게이트웨이 통신 실패:\n' + error.message);
+      } finally {
+        makeSpeechBtn.disabled = false;
+        makeSpeechBtn.textContent = "🔊 OpenAI TTS 캐스팅";
+      }
     }
 
-    // 돔 로드 완료 시 진입점 실행
+    // 초기 실행 트리거
     window.addEventListener('load', () => {
       setTimeout(() => {
         switchTab('10', document.querySelector('.tab-btn'));
