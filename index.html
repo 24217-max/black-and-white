@@ -227,7 +227,6 @@
     import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
     import { getDatabase, ref, push, set, remove, onValue, off } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
 
-    // [필수수정] Firebase Config 설정 (기존 정보 유지)
     const firebaseConfig = {
   apiKey: "AIzaSyBi_sBEMzAeJDsWJb6QjKqrYx4Gh38S7vE",
   authDomain: "small-minseong.firebaseapp.com",
@@ -236,8 +235,8 @@
   storageBucket: "small-minseong.firebasestorage.app",
   messagingSenderId: "363007349157",
   appId: "1:363007349157:web:59d5a4b55213de2b65584c",
-      measurementId: "G-6G2GRWPC19"
-    };
+  measurementId: "G-6G2GRWPC19"
+};
 
     const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbtZBoKwWes3bxJU1fgJr1R-KXsgw1F8eYG_KrE94v04_SeU9baSK7LkpiG7LQMcdwvy8A/exec';
 
